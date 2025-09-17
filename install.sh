@@ -122,17 +122,29 @@ while true; do
     fi
 done
 
-# Configure workers based on CPU
-if [ "$CPU_CORES" -eq 1 ] || [ "$TOTAL_MEM" -lt 1500 ]; then
+# Configure workers based on resources
+if [ "$TOTAL_MEM" -lt 900 ]; then
+    # Less than 900MB RAM - no workers
     WORKERS=0
-    print_color "📊 Single core/Low RAM detected - Running without workers" "$YELLOW"
+    print_color "⚠️ Low RAM detected (<900MB) - Running without workers" "$YELLOW"
 else
-    echo -e "${YELLOW}Number of workers (0-$CPU_CORES) [Recommended: 1]:${NC}"
+    # Calculate recommended workers
+    if [ "$CPU_CORES" -eq 1 ]; then
+        RECOMMENDED=1
+        print_color "📊 1 vCPU detected - Can run 1 worker with queue mode" "$CYAN"
+    elif [ "$CPU_CORES" -eq 2 ]; then
+        RECOMMENDED=2
+    else
+        RECOMMENDED=$((CPU_CORES - 1))  # Leave 1 core for main n8n
+    fi
+
+    echo -e "${YELLOW}Number of workers (0-$CPU_CORES) [Recommended: $RECOMMENDED]:${NC}"
     read -r WORKERS
-    WORKERS=${WORKERS:-1}
+    WORKERS=${WORKERS:-$RECOMMENDED}
+
     if ! [[ "$WORKERS" =~ ^[0-9]+$ ]] || [ "$WORKERS" -gt "$CPU_CORES" ]; then
-        WORKERS=1
-        print_color "Using default: 1 worker" "$YELLOW"
+        WORKERS=$RECOMMENDED
+        print_color "Using recommended: $WORKERS worker(s)" "$YELLOW"
     fi
 fi
 
