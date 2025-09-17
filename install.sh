@@ -8,6 +8,11 @@
 
 set -e
 
+# Environment variables for non-interactive mode
+# Export these before running for automation:
+# export N8N_DOMAIN="n8n.yourdomain.com"
+# export N8N_EMAIL="admin@yourdomain.com"
+
 # Color codes
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -133,45 +138,49 @@ quick_setup() {
 production_setup() {
     print_message "\n🔧 Production Setup" "$CYAN"
 
-    # Get domain
-    while true; do
-        read -p "Enter domain/subdomain (e.g., n8n.company.com): " DOMAIN
-        if [[ "$DOMAIN" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$ ]]; then
-            break
-        else
-            print_message "Invalid domain format!" "$RED"
-        fi
-    done
+    # Get domain (use environment variable if set)
+    if [ -n "$N8N_DOMAIN" ]; then
+        DOMAIN="$N8N_DOMAIN"
+        print_message "Using domain from environment: $DOMAIN" "$GREEN"
+    else
+        while true; do
+            read -p "Enter domain/subdomain (e.g., n8n.company.com): " DOMAIN
+            if [[ "$DOMAIN" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$ ]]; then
+                break
+            else
+                print_message "Invalid domain format!" "$RED"
+            fi
+        done
+    fi
 
-    # Get email
-    read -p "Email for SSL certificates: " EMAIL
-    while [[ ! "$EMAIL" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; do
-        print_message "Invalid email!" "$RED"
-        read -p "Enter email: " EMAIL
-    done
+    # Get email (use environment variable if set)
+    if [ -n "$N8N_EMAIL" ]; then
+        EMAIL="$N8N_EMAIL"
+        print_message "Using email from environment: $EMAIL" "$GREEN"
+    else
+        read -p "Email for SSL certificates: " EMAIL
+        while [[ ! "$EMAIL" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; do
+            print_message "Invalid email!" "$RED"
+            read -p "Enter email: " EMAIL
+        done
+    fi
 
-    # Get server IP for DNS info
+    # Get server IP for reference
     SERVER_IP=$(curl -s https://api.ipify.org)
 
-    print_message "\n📝 DNS Configuration Required:" "$YELLOW"
-    echo "Add this DNS A record:"
-    echo "  Type: A"
-    echo "  Name: ${DOMAIN%%.*}"
-    echo "  Value: $SERVER_IP"
-    echo "  TTL: 300"
-    echo
-    read -p "Press Enter when DNS is configured..."
+    print_message "\n✅ Assuming DNS is configured:" "$GREEN"
+    echo "Domain: $DOMAIN → $SERVER_IP"
 }
 
 # Configure installation
 configure_installation() {
     print_message "\n⚙️  Configuration" "$CYAN"
 
-    # Setup type
+    # Setup type - DEFAULT TO PRODUCTION
     echo "1) Quick Setup (localhost/testing)"
-    echo "2) Production Setup (with domain)"
-    read -p "Choose setup type [1]: " setup_type
-    setup_type=${setup_type:-1}
+    echo "2) Production Setup (with domain) [DEFAULT]"
+    read -p "Choose setup type [2]: " setup_type
+    setup_type=${setup_type:-2}
 
     if [ "$setup_type" = "2" ]; then
         production_setup
@@ -189,19 +198,20 @@ configure_installation() {
             WORKERS=0
             print_message "📉 Single core detected: Running without separate workers" "$YELLOW"
         else
-            read -p "Number of workers (0 for embedded mode) [0]: " WORKERS
-            WORKERS=${WORKERS:-0}
+            # Auto-calculate optimal workers
+            if [ "$cpu_cores" -ge 4 ]; then
+                WORKERS=2
+            else
+                WORKERS=1
+            fi
+            read -p "Number of workers (0-${cpu_cores}) [${WORKERS}]: " user_workers
+            WORKERS=${user_workers:-$WORKERS}
         fi
     fi
 
-    # Optional components
-    if [ "$MIN_MODE" != "y" ]; then
-        read -p "Install Portainer for Docker management? (y/n) [n]: " INSTALL_PORTAINER
-        INSTALL_PORTAINER=${INSTALL_PORTAINER:-n}
-
-        read -p "Install Watchtower for auto-updates? (y/n) [n]: " INSTALL_WATCHTOWER
-        INSTALL_WATCHTOWER=${INSTALL_WATCHTOWER:-n}
-    fi
+    # Skip optional components by default for minimal setup
+    INSTALL_PORTAINER="n"
+    INSTALL_WATCHTOWER="n"
 
     # Generate passwords
     POSTGRES_PASSWORD=$(openssl rand -base64 24 | tr -d "=+/" | cut -c1-20)
@@ -219,9 +229,10 @@ configure_installation() {
     echo "Install Path: $INSTALL_DIR"
     echo "================================"
 
-    read -p "Continue? (y/n): " -n 1 -r
+    read -p "Continue? (y/n) [y]: " -n 1 -r confirm
     echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    confirm=${confirm:-y}
+    if [[ ! $confirm =~ ^[Yy]$ ]]; then
         exit 1
     fi
 }
@@ -657,10 +668,10 @@ show_summary() {
     else
         print_message "\n📌 Access n8n at:" "$CYAN"
         echo "https://$DOMAIN"
-
+        echo
+        print_message "If not accessible, verify DNS points to:" "$YELLOW"
         SERVER_IP=$(curl -s https://api.ipify.org)
-        print_message "\n⚠️ DNS Setup Required:" "$YELLOW"
-        echo "Point $DOMAIN to $SERVER_IP"
+        echo "$DOMAIN → $SERVER_IP"
     fi
 
     if [[ "$INSTALL_PORTAINER" =~ ^[Yy]$ ]]; then
