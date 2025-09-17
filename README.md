@@ -14,7 +14,7 @@ Professional n8n deployment system for VPS with automatic SSL, workers, and Redi
 - [Quick Start](#-quick-start)
 - [Features](#-features)
 - [Requirements](#-requirements)
-- [Installation](#-what-youll-be-asked)
+- [Installation Guide](#-installation-guide)
 - [Services & Architecture](#-services)
 - [Management Commands](#-management-commands)
 - [DNS Configuration](#-dns-configuration)
@@ -75,14 +75,71 @@ Tested and optimized for:
 - Google Cloud
 - Any KVM/Xen VPS provider
 
-## 📝 What You'll Be Asked
+## 📝 Installation Guide
 
-1. **Installation name** - e.g., `production` or `client1`
-2. **Domain** - e.g., `n8n.yourdomain.com`
-3. **Email** - For SSL certificates
-4. **Workers** - Auto-detected (just press Enter)
-5. **Timezone** - Default UTC (just press Enter)
-6. **Backups** - Default Yes (just press Enter)
+### Step-by-Step Process
+
+When you run the installer, you'll be prompted for:
+
+1. **Installation name**
+   - Example: `production`, `client1`, `kitcabinetsdemo`
+   - This becomes your folder name: `/root/n8n-[name]/`
+   - Use lowercase, no spaces
+
+2. **Domain**
+   - Example: `n8n.yourdomain.com`, `automation.company.com`
+   - Must have DNS A record pointing to your VPS IP
+   - Cannot use IP addresses directly
+
+3. **Email**
+   - Used for Let's Encrypt SSL certificates
+   - Will receive certificate expiry notices
+   - Must be valid email address
+
+4. **Workers** (Optional - Press Enter for auto-detect)
+   - Auto-calculated based on CPU/RAM
+   - 1GB VPS = 0 workers (embedded mode)
+   - 2GB VPS = 1 worker
+   - 4GB+ VPS = 2+ workers
+
+5. **Timezone** (Optional - Press Enter for UTC)
+   - Default: UTC
+   - Format: `America/New_York`, `Europe/London`, etc.
+   - Affects workflow scheduling
+
+6. **Backups** (Optional - Press Enter for Yes)
+   - Default: Yes (recommended)
+   - Creates daily backups at 2 AM
+   - Keeps last 7 days of backups
+
+### Installation Example
+
+```bash
+# Download and run installer
+curl -o install.sh https://raw.githubusercontent.com/judetelan/n8n-starter-pack/master/install.sh && sudo bash install.sh
+
+# Sample responses:
+Enter installation name: production
+Enter domain: n8n.example.com
+Enter email: admin@example.com
+Workers [1]: (press Enter)
+Timezone [UTC]: (press Enter)
+Enable backups [Y/n]: (press Enter)
+
+# Installation takes 2-3 minutes
+# Credentials displayed at the end
+```
+
+### Post-Installation
+
+After installation completes, you'll see:
+- ✅ Your n8n URL (https://your-domain.com)
+- ✅ Admin username (always `admin`)
+- ✅ Auto-generated password
+- ✅ Installation directory
+- ✅ Management commands
+
+**IMPORTANT**: Save the password immediately! It's also stored in `/root/n8n-[name]/credentials.txt`
 
 ## 🏗️ What Gets Installed
 
