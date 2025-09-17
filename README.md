@@ -2,6 +2,35 @@
 
 Professional n8n deployment system for VPS with automatic SSL, workers, and Redis queue support.
 
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![n8n Version](https://img.shields.io/badge/n8n-latest-orange.svg)](https://github.com/n8n-io/n8n)
+[![Docker](https://img.shields.io/badge/docker-required-blue.svg)](https://www.docker.com/)
+[![Ubuntu](https://img.shields.io/badge/ubuntu-20.04%2B-orange.svg)](https://ubuntu.com/)
+
+> **Production-ready n8n deployment in under 5 minutes** - Complete with SSL, PostgreSQL, Redis queues, and automated backups.
+
+## 📑 Table of Contents
+
+- [Quick Start](#-quick-start)
+- [Features](#-features)
+- [Requirements](#-requirements)
+- [Installation](#-what-youll-be-asked)
+- [Services & Architecture](#-services)
+- [Management Commands](#-management-commands)
+- [DNS Configuration](#-dns-configuration)
+- [Access n8n](#-access-n8n)
+- [Backup & Restore](#-backup--restore)
+- [Updates](#-updates)
+- [Resource Configuration](#️-resource-configuration)
+- [Troubleshooting](#️-troubleshooting)
+- [Security](#-security)
+- [Advanced Configuration](#-advanced-configuration)
+- [Performance Tuning](#-performance-tuning)
+- [FAQ](#-frequently-asked-questions)
+- [Documentation](#-documentation--resources)
+- [Contributing](#-contributing)
+- [License](#-license)
+
 ## 🚀 Quick Start
 
 ```bash
@@ -27,9 +56,24 @@ That's it! Just follow the prompts. The installer will:
 
 ## 📋 Requirements
 
-- Ubuntu/Debian VPS (1GB RAM minimum)
-- Domain name with DNS configured (A record pointing to VPS)
-- Root access
+### Minimum Requirements
+- **OS**: Ubuntu 20.04+ or Debian 11+
+- **RAM**: 1GB minimum (2GB+ recommended for production)
+- **CPU**: 1 vCPU minimum (2+ for workers)
+- **Storage**: 10GB minimum
+- **Domain**: Required with DNS A record configured
+- **Ports**: 80, 443 (must be open)
+- **Access**: Root or sudo access
+
+### Supported Providers
+Tested and optimized for:
+- DigitalOcean
+- Linode
+- Vultr
+- Hetzner
+- AWS Lightsail
+- Google Cloud
+- Any KVM/Xen VPS provider
 
 ## 📝 What You'll Be Asked
 
@@ -179,69 +223,313 @@ git pull
 
 ## 🛠️ Troubleshooting
 
-### Check Services
+### Common Issues & Solutions
+
+#### 🔴 502 Bad Gateway Error
+**Symptom**: Browser shows 502 error when accessing n8n
+
+**Solution 1**: Fix permissions (most common)
 ```bash
+curl -o fix-permissions.sh https://raw.githubusercontent.com/judetelan/n8n-starter-pack/master/fix-permissions.sh && sudo bash fix-permissions.sh
+```
+
+**Solution 2**: Check if services are running
+```bash
+cd /root/n8n-[client]
 ./manage.sh status
-docker compose ps
+./manage.sh logs n8n
 ```
 
-### View Logs
+#### 🔴 Permission Denied Errors
+**Symptom**: Logs show `EACCES: permission denied, open '/home/node/.n8n/config'`
+
+**Solution**: Run the permission fix script
 ```bash
-./manage.sh logs        # All logs
-./manage.sh logs n8n    # n8n logs
-./manage.sh logs postgres # Database logs
-./manage.sh logs caddy  # SSL/proxy logs
+cd /root/n8n-[client]
+docker compose down
+chown -R 1000:1000 ./data ./files
+docker compose up -d
 ```
 
-### SSL Issues
-- Ensure DNS is configured correctly
-- Check ports 80 and 443 are open
-- View Caddy logs: `./manage.sh logs caddy`
+#### 🔴 SSL Certificate Issues
+**Symptom**: HTTPS not working or certificate errors
 
-### Connection Issues
+**Solutions**:
+1. Verify DNS is configured:
 ```bash
-# Check firewall
+nslookup your-domain.com
+dig your-domain.com
+```
+
+2. Check Caddy logs:
+```bash
+./manage.sh logs caddy
+```
+
+3. Ensure ports are open:
+```bash
 sudo ufw status
 sudo ufw allow 80
 sudo ufw allow 443
-
-# Test locally
-curl http://localhost:5678/healthz
-
-# Check DNS
-nslookup your-domain.com
 ```
 
-### Low Memory
+#### 🔴 High Memory Usage
+**Symptom**: Services crashing or VPS running out of memory
+
+**Solutions**:
+1. Add swap space:
 ```bash
-# Add swap if needed
 sudo fallocate -l 2G /swapfile
 sudo chmod 600 /swapfile
 sudo mkswap /swapfile
 sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
+
+2. Reduce Node.js memory limit in `.env`:
+```bash
+NODE_OPTIONS="--max-old-space-size=512"
+```
+
+#### 🔴 Container Keeps Restarting
+**Symptom**: n8n container in restart loop
+
+**Debug steps**:
+```bash
+# Check logs
+./manage.sh logs n8n --tail=50
+
+# Check disk space
+df -h
+
+# Check memory
+free -m
+
+# Restart fresh
+docker compose down
+docker compose up -d
+```
+
+### Quick Diagnostic Commands
+
+```bash
+# Check all services
+cd /root/n8n-[client]
+./manage.sh status
+
+# View recent logs
+./manage.sh logs --tail=50
+
+# Test n8n health
+curl http://localhost:5678/healthz
+
+# Check disk usage
+df -h
+
+# Check memory
+free -m
+
+# Check Docker
+docker ps -a
+docker compose ps
+```
+
+### Log Locations
+
+| Service | Log Command | Description |
+|---------|-------------|-------------|
+| n8n | `./manage.sh logs n8n` | Application logs |
+| PostgreSQL | `./manage.sh logs postgres` | Database logs |
+| Redis | `./manage.sh logs redis` | Queue logs |
+| Caddy | `./manage.sh logs caddy` | SSL/proxy logs |
+| Workers | `./manage.sh logs n8n-worker-1` | Worker process logs |
 
 ## 🔒 Security
 
-- ✅ Auto-generated strong passwords
-- ✅ Basic authentication enabled
-- ✅ SSL enforced (HTTPS only)
-- ✅ Unique encryption keys per installation
-- ✅ Database passwords (20 chars)
-- ✅ Credentials file secured (600 permissions)
+### Security Features
+- ✅ **Auto-generated strong passwords** - 20+ character passwords
+- ✅ **Basic authentication enabled** - Additional layer before n8n login
+- ✅ **SSL enforced** - HTTPS only, no plain HTTP
+- ✅ **Unique encryption keys** - Per-installation encryption
+- ✅ **Database isolation** - Separate PostgreSQL per instance
+- ✅ **Credentials secured** - 600 permissions on sensitive files
+- ✅ **Docker network isolation** - Services communicate internally
+- ✅ **No root processes** - n8n runs as non-root user
 
-## 📚 Documentation
+### Security Best Practices
+1. **Regular Updates**: Run `./manage.sh update` monthly
+2. **Backup Credentials**: Save credentials.txt offline
+3. **Firewall Rules**: Only allow ports 80, 443, and SSH
+4. **SSH Keys**: Disable password authentication for SSH
+5. **Monitoring**: Check logs regularly for suspicious activity
 
+## 🎯 Advanced Configuration
+
+### Environment Variables
+All configuration is stored in `/root/n8n-[client]/.env`. Key variables:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `N8N_PORT` | n8n internal port | 5678 |
+| `NODE_OPTIONS` | Node.js memory limit | --max-old-space-size=1024 |
+| `EXECUTIONS_MODE` | Execution mode | queue (with workers) or regular |
+| `EXECUTIONS_DATA_SAVE_ON_ERROR` | Save failed executions | all |
+| `EXECUTIONS_DATA_SAVE_ON_SUCCESS` | Save successful executions | all |
+| `EXECUTIONS_DATA_MAX_AGE` | Max age of execution data | 336 (hours) |
+| `TZ` | Timezone | UTC |
+
+### Multiple Instances
+Deploy multiple n8n instances on the same VPS:
+
+```bash
+# First instance
+sudo bash install.sh
+# Enter: client1 as name, client1.domain.com as domain
+
+# Second instance
+sudo bash install.sh
+# Enter: client2 as name, client2.domain.com as domain
+```
+
+Each instance is completely isolated with its own:
+- Database
+- Redis queue (if workers enabled)
+- Data directory
+- Credentials
+- SSL certificate
+
+### Custom Workflows Directory
+To use a custom workflows location:
+
+1. Edit `docker-compose.yml`
+2. Add volume mapping:
+```yaml
+volumes:
+  - ./data:/home/node/.n8n
+  - ./files:/files
+  - /path/to/workflows:/home/node/.n8n/workflows
+```
+
+## ❓ Frequently Asked Questions
+
+### Q: Can I install this on a shared hosting?
+**A**: No, this requires a VPS with root access and Docker support. Shared hosting won't work.
+
+### Q: What's the minimum RAM requirement?
+**A**: 1GB RAM minimum, but 2GB+ is recommended for production use with workers.
+
+### Q: Can I use this without a domain?
+**A**: No, a domain is required for SSL certificates. You cannot use just an IP address.
+
+### Q: How do I access n8n after installation?
+**A**: Visit `https://your-domain.com` and use the credentials shown after installation or saved in `/root/n8n-[client]/credentials.txt`
+
+### Q: Can I install multiple instances on one VPS?
+**A**: Yes! Just run the installer multiple times with different client names and domains.
+
+### Q: How do I update n8n?
+**A**: Run `./manage.sh update` in your installation directory.
+
+### Q: Is my data backed up?
+**A**: If you enabled backups during installation, daily backups run at 2 AM. You can also run manual backups with `./manage.sh backup`
+
+### Q: What if I forget my password?
+**A**: Check `/root/n8n-[client]/credentials.txt` or reset it in the `.env` file and restart services.
+
+### Q: Can I migrate from another n8n installation?
+**A**: Yes, export your workflows from the old instance and import them in the new one through the n8n UI.
+
+### Q: How do I uninstall?
+**A**: Run `./manage.sh uninstall` - this creates a backup first, then removes everything.
+
+### Q: Does this work on ARM processors?
+**A**: Currently optimized for x86_64. ARM support (Raspberry Pi, etc.) is not tested.
+
+### Q: Can I customize the installation path?
+**A**: The installer uses `/root/n8n-[client]` by default. Customizing requires modifying the install script.
+
+## 🚦 Performance Tuning
+
+### For High-Volume Workflows
+1. **Increase Workers**: Edit `.env` and restart
+```bash
+WORKERS=4
+```
+
+2. **Optimize PostgreSQL**: Add to `docker-compose.yml`:
+```yaml
+postgres:
+  command:
+    - postgres
+    - -c
+    - max_connections=200
+    - -c
+    - shared_buffers=256MB
+```
+
+3. **Redis Memory**: Increase in `docker-compose.yml`:
+```yaml
+redis:
+  command: redis-server --maxmemory 512mb
+```
+
+### Monitoring Performance
+```bash
+# CPU and Memory usage
+docker stats
+
+# Database connections
+docker exec [client]-postgres psql -U n8n -c "SELECT count(*) FROM pg_stat_activity;"
+
+# Redis memory
+docker exec [client]-redis redis-cli -a $REDIS_PASSWORD INFO memory
+```
+
+## 📚 Documentation & Resources
+
+### Official Documentation
 - **n8n Docs**: https://docs.n8n.io
 - **n8n Community**: https://community.n8n.io
-- **Issues**: [Create issue](https://github.com/judetelan/n8n-starter-pack/issues)
+- **n8n Forum**: https://community.n8n.io/c/questions/5
+- **n8n Discord**: https://discord.gg/n8n
+
+### This Installer
+- **GitHub**: https://github.com/judetelan/n8n-starter-pack
+- **Issues**: [Report bugs](https://github.com/judetelan/n8n-starter-pack/issues)
+- **Updates**: Check [Releases](https://github.com/judetelan/n8n-starter-pack/releases)
+
+### Useful Guides
+- [n8n Workflow Examples](https://n8n.io/workflows)
+- [n8n Nodes Documentation](https://docs.n8n.io/integrations/)
+- [n8n API Reference](https://docs.n8n.io/api/)
+- [Custom Nodes Development](https://docs.n8n.io/nodes/creating-nodes/)
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+### How to Contribute
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## 📄 License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [n8n.io](https://n8n.io) for the amazing workflow automation platform
+- [Caddy Server](https://caddyserver.com) for simple SSL management
+- [Docker](https://docker.com) for containerization
+- Community contributors and testers
 
 ---
 
-**Built for production n8n deployments on VPS** 🚀
+**Built with ❤️ for production n8n deployments** 🚀
 
-Optimized for minimal resources while maintaining reliability and security.
+*Optimized for minimal resources while maintaining reliability and security.*
+
+**Last Updated**: 2024 | **Version**: 1.0.2 | **Status**: Production Ready
