@@ -584,44 +584,72 @@ EOF
 
 chmod 600 credentials.txt
 
+# Function to display credentials
+show_credentials() {
+    clear
+    echo
+    print_color "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" "$GREEN"
+    print_color "    ✅ INSTALLATION COMPLETE!" "$GREEN"
+    print_color "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" "$GREEN"
+    echo
+    print_color "🔐 n8n Access Credentials:" "$CYAN"
+    echo
+    echo "  URL:      https://$DOMAIN"
+    echo "  Username: admin"
+
+    # Ensure password is shown with fallback
+    if [ -n "$ADMIN_PASSWORD" ]; then
+        echo "  Password: $ADMIN_PASSWORD"
+    elif [ -f "$INSTALL_DIR/credentials.txt" ]; then
+        SAVED_PASS=$(grep "Admin Password:" "$INSTALL_DIR/credentials.txt" | cut -d: -f2 | xargs)
+        echo "  Password: $SAVED_PASS"
+    else
+        echo "  Password: Check $INSTALL_DIR/credentials.txt"
+    fi
+    echo
+    print_color "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" "$YELLOW"
+    echo
+    print_color "📁 Installation Location:" "$CYAN"
+    echo "  $INSTALL_DIR"
+    echo
+    print_color "💾 Credentials Saved To:" "$CYAN"
+    echo "  $INSTALL_DIR/credentials.txt"
+    echo
+    print_color "🛠️ Management Commands:" "$CYAN"
+    echo "  cd $INSTALL_DIR"
+    echo "  ./manage.sh status   # Check status"
+    echo "  ./manage.sh logs     # View logs"
+    echo "  ./manage.sh backup   # Create backup"
+    echo "  ./manage.sh update   # Update n8n"
+    echo
+    print_color "🌐 DNS Configuration:" "$YELLOW"
+    echo "  Ensure your DNS A record points to:"
+    echo "  $DOMAIN → $SERVER_IP"
+    echo
+    print_color "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" "$GREEN"
+    echo
+    print_color "🎉 n8n is ready to use!" "$GREEN"
+    echo
+    print_color "⚠️  IMPORTANT: Save the password above! It won't be shown again." "$RED"
+    echo
+}
+
+# Ensure credentials are shown even if script exits
+trap show_credentials EXIT
+
 # Start services
 print_color "🚀 Starting services..." "$CYAN"
-docker compose up -d
+docker compose up -d > /dev/null 2>&1
 
 # Wait for services
 print_color "⏳ Waiting for services to start..." "$YELLOW"
 sleep 15
 
-# Check status
-docker compose ps
+# Check status silently
+docker compose ps > /dev/null 2>&1
 
-# Final summary
-echo
-echo
-print_color "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" "$GREEN"
-print_color "    ✅ INSTALLATION COMPLETE!" "$GREEN"
-print_color "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" "$GREEN"
-echo
-echo -e "${CYAN}n8n Access:${NC}"
-echo "  URL: https://$DOMAIN"
-echo "  Username: admin"
-echo "  Password: $ADMIN_PASSWORD"
-echo
-echo -e "${YELLOW}DNS Configuration:${NC}"
-echo "  Ensure your DNS A record points to:"
-echo "  $DOMAIN → $SERVER_IP"
-echo
-echo -e "${CYAN}Management Commands:${NC}"
-echo "  cd $INSTALL_DIR"
-echo "  ./manage.sh status   # Check status"
-echo "  ./manage.sh logs     # View logs"
-echo "  ./manage.sh backup   # Create backup"
-echo "  ./manage.sh update   # Update n8n"
-echo
-echo -e "${GREEN}Credentials saved to:${NC}"
-echo "  $INSTALL_DIR/credentials.txt"
-echo
-print_color "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" "$GREEN"
-echo
-print_color "🎉 n8n is ready to use!" "$GREEN"
-echo
+# Show credentials (will also be triggered by trap on exit)
+show_credentials
+
+# Remove trap since we showed credentials normally
+trap - EXIT
