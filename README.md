@@ -23,33 +23,22 @@ Professional n8n deployment system for VPS with automatic SSL, workers, and Redi
 
 ## 🚀 Installation
 
-### Method 1: Clone and Run (REQUIRED)
+### Quick Install (One Command)
 
 ```bash
-# Clone the repository
-git clone https://github.com/judetelan/n8n-starter-pack
-cd n8n-starter-pack
-
-# Run installer as root
-sudo bash install.sh
-
-# Or if already root
-bash install.sh
+wget -O install.sh https://raw.githubusercontent.com/judetelan/n8n-starter-pack/master/install.sh && sudo bash install.sh
 ```
 
-**⚠️ IMPORTANT: Do NOT use `curl | bash` - the installer requires local execution**
-
-### Method 2: Direct Download
+Or with curl:
 
 ```bash
-# Download installer
-wget https://raw.githubusercontent.com/judetelan/n8n-starter-pack/master/install.sh
+curl -o install.sh https://raw.githubusercontent.com/judetelan/n8n-starter-pack/master/install.sh && sudo bash install.sh
+```
 
-# Make executable
-chmod +x install.sh
+### Alternative: Clone Method
 
-# Run as root
-sudo ./install.sh
+```bash
+git clone https://github.com/judetelan/n8n-starter-pack && cd n8n-starter-pack && sudo bash install.sh
 ```
 
 ## 📝 Installation Process
