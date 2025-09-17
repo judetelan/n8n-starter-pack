@@ -3,7 +3,7 @@
 ###########################################
 # n8n Starter Pack - Lightweight Installer
 # Optimized for 1vCPU VPS deployment
-# GitHub: yourusername/n8n-starter-pack
+# GitHub: judetelan/n8n-starter-pack
 ###########################################
 
 set -e
@@ -96,7 +96,14 @@ install_docker() {
     fi
 
     # Install Docker Compose
-    if ! command -v docker-compose &> /dev/null; then
+    # Check for Docker Compose (v2 preferred, v1 fallback)
+    if docker compose version &> /dev/null; then
+        DOCKER_COMPOSE="docker compose"
+        print_message "✅ Docker Compose v2 detected" "$GREEN"
+    elif command -v docker-compose &> /dev/null; then
+        DOCKER_COMPOSE="docker-compose"
+        print_message "✅ Docker Compose v1 detected" "$GREEN"
+    else
         print_message "📦 Installing Docker Compose..." "$CYAN"
         if [ "$EUID" -eq 0 ]; then
             curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
@@ -105,6 +112,7 @@ install_docker() {
             sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
             sudo chmod +x /usr/local/bin/docker-compose
         fi
+        DOCKER_COMPOSE="docker-compose"
     fi
 }
 
@@ -126,10 +134,13 @@ production_setup() {
     print_message "\n🔧 Production Setup" "$CYAN"
 
     # Get domain
-    read -p "Enter domain/subdomain (e.g., n8n.company.com): " DOMAIN
-    while [[ -z "$DOMAIN" ]]; do
-        print_message "Domain required for production!" "$RED"
-        read -p "Enter domain: " DOMAIN
+    while true; do
+        read -p "Enter domain/subdomain (e.g., n8n.company.com): " DOMAIN
+        if [[ "$DOMAIN" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$ ]]; then
+            break
+        else
+            print_message "Invalid domain format!" "$RED"
+        fi
     done
 
     # Get email
@@ -264,7 +275,11 @@ TZ=UTC
 GENERIC_TIMEZONE=UTC
 
 # Performance (adjusted for low resources)
-NODE_OPTIONS="--max-old-space-size=1024"
+if [ "$total_mem" -lt 1536 ]; then
+    NODE_OPTIONS="--max-old-space-size=512"
+else
+    NODE_OPTIONS="--max-old-space-size=1024"
+fi
 EOF
 
     if [ "$WORKERS" -gt 0 ]; then
@@ -318,6 +333,7 @@ EOF
     cat >> $INSTALL_DIR/docker-compose.yml << 'EOF'
   postgres:
     image: postgres:13-alpine
+    container_name: n8n-postgres
     restart: unless-stopped
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
@@ -338,6 +354,7 @@ EOF
         cat >> $INSTALL_DIR/docker-compose.yml << 'EOF'
   redis:
     image: redis:6-alpine
+    container_name: n8n-redis
     restart: unless-stopped
     command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
@@ -355,6 +372,7 @@ EOF
     cat >> $INSTALL_DIR/docker-compose.yml << 'EOF'
   n8n:
     image: n8nio/n8n:latest
+    container_name: n8n-main
     restart: unless-stopped
 EOF
 
@@ -536,7 +554,7 @@ case "$1" in
         ;;
     backup)
         timestamp=$(date +%Y%m%d_%H%M%S)
-        docker exec n8n-postgres-1 pg_dump -U n8n n8n > backups/backup_$timestamp.sql
+        docker exec n8n-postgres pg_dump -U n8n n8n > backups/backup_$timestamp.sql
         gzip backups/backup_$timestamp.sql
         echo -e "${GREEN}Backup created: backups/backup_$timestamp.sql.gz${NC}"
         ;;
