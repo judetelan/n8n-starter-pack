@@ -1,0 +1,47 @@
+# Environment files
+.env
+.env.local
+.env.production
+
+# Credentials
+credentials.txt
+*.pem
+*.key
+*.crt
+
+# Data directories
+data/
+postgres-data/
+redis-data/
+caddy-data/
+portainer-data/
+
+# Backups
+backups/
+*.sql
+*.sql.gz
+*.tar.gz
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Docker
+docker-compose.override.yml
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup

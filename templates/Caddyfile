@@ -1,0 +1,62 @@
+# Caddyfile for n8n with automatic SSL
+# This file configures Caddy as a reverse proxy for n8n
+
+# Main n8n instance
+{$DOMAIN} {
+    # Enable compression
+    encode gzip
+
+    # Reverse proxy to n8n
+    reverse_proxy n8n:5678 {
+        # Important for SSE/WebSocket support
+        flush_interval -1
+
+        # Headers for proper forwarding
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    # Security headers
+    header {
+        # Enable HSTS
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+        # Disable content type sniffing
+        X-Content-Type-Options "nosniff"
+
+        # Enable XSS protection
+        X-XSS-Protection "1; mode=block"
+
+        # Clickjacking protection
+        X-Frame-Options "SAMEORIGIN"
+
+        # Referrer policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 10MB
+            roll_keep 5
+        }
+    }
+}
+
+# Portainer subdomain (if enabled)
+portainer.{$DOMAIN} {
+    reverse_proxy portainer:9000
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+    }
+}
+
+# Redirect www to non-www
+www.{$DOMAIN} {
+    redir https://{$DOMAIN}{uri} permanent
+}
