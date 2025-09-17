@@ -148,13 +148,21 @@ else
     fi
 fi
 
-# Set timezone
-echo -e "${YELLOW}Timezone (e.g., America/New_York) [UTC]:${NC}"
-read -r TIMEZONE
-TIMEZONE=${TIMEZONE:-UTC}
+# Set timezone - try to auto-detect, default to UTC
+if [ -f /etc/timezone ]; then
+    SYSTEM_TZ=$(cat /etc/timezone)
+elif [ -L /etc/localtime ]; then
+    SYSTEM_TZ=$(readlink /etc/localtime | sed 's/.*zoneinfo\///')
+else
+    SYSTEM_TZ="UTC"
+fi
 
-# Daily backup option
-echo -e "${YELLOW}Enable daily backups at 2 AM? (y/n) [y]:${NC}"
+echo -e "${YELLOW}Timezone [Auto-detected: $SYSTEM_TZ] - Press Enter to use:${NC}"
+read -r TIMEZONE
+TIMEZONE=${TIMEZONE:-$SYSTEM_TZ}
+
+# Daily backup option - default yes
+echo -e "${YELLOW}Enable daily backups? [Y/n]:${NC}"
 read -r ENABLE_BACKUP
 ENABLE_BACKUP=${ENABLE_BACKUP:-y}
 
