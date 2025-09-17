@@ -637,6 +637,16 @@ show_credentials() {
 # Ensure credentials are shown even if script exits
 trap show_credentials EXIT
 
+# Create directories and fix permissions
+print_color "🔧 Setting up directories and permissions..." "$CYAN"
+mkdir -p ./data ./files ./postgres-data
+if [ "$WORKERS" -gt 0 ]; then
+    mkdir -p ./redis-data
+fi
+# n8n runs as node user (UID 1000) in the container
+chown -R 1000:1000 ./data ./files
+chmod -R 755 ./data ./files
+
 # Start services
 print_color "🚀 Starting services..." "$CYAN"
 docker compose up -d > /dev/null 2>&1
