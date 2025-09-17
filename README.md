@@ -2,6 +2,18 @@
 
 Professional n8n deployment system for VPS with automatic SSL, workers, and Redis queue support.
 
+## 🚀 Quick Start
+
+```bash
+curl -o install.sh https://raw.githubusercontent.com/judetelan/n8n-starter-pack/master/install.sh && sudo bash install.sh
+```
+
+That's it! Just follow the prompts. The installer will:
+1. Check your system resources
+2. Ask for your domain and email
+3. Configure everything automatically
+4. Give you the login credentials
+
 ## ✅ Features
 
 - **Domain Required** - Professional deployment with HTTPS
@@ -15,42 +27,18 @@ Professional n8n deployment system for VPS with automatic SSL, workers, and Redi
 
 ## 📋 Requirements
 
-- Ubuntu/Debian VPS
-- **1GB RAM minimum** (2GB recommended)
-- 5GB disk space
-- Domain name with DNS configured
+- Ubuntu/Debian VPS (1GB RAM minimum)
+- Domain name with DNS configured (A record pointing to VPS)
 - Root access
 
-## 🚀 Installation
+## 📝 What You'll Be Asked
 
-### One Command Install
-
-```bash
-curl -o install.sh https://raw.githubusercontent.com/judetelan/n8n-starter-pack/master/install.sh && sudo bash install.sh
-```
-
-### Alternative Methods
-
-**Using wget:**
-```bash
-wget -O install.sh https://raw.githubusercontent.com/judetelan/n8n-starter-pack/master/install.sh && sudo bash install.sh
-```
-
-**Using git clone:**
-```bash
-git clone https://github.com/judetelan/n8n-starter-pack && cd n8n-starter-pack && sudo bash install.sh
-```
-
-## 📝 Installation Process
-
-The installer will prompt for:
-
-1. **Client/Project Name** - Identifier for this installation (e.g., `production`, `client1`)
-2. **Domain** - Your domain/subdomain (e.g., `n8n.company.com`)
+1. **Installation name** - e.g., `production` or `client1`
+2. **Domain** - e.g., `n8n.yourdomain.com`
 3. **Email** - For SSL certificates
-4. **Workers** - Auto-calculated based on CPU (can override)
-5. **Timezone** - For scheduling (default: UTC)
-6. **Backups** - Enable daily backups at 2 AM (recommended)
+4. **Workers** - Auto-detected (just press Enter)
+5. **Timezone** - Default UTC (just press Enter)
+6. **Backups** - Default Yes (just press Enter)
 
 ## 🏗️ What Gets Installed
 
