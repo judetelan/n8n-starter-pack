@@ -103,7 +103,8 @@ done
 while true; do
     echo -e "${YELLOW}Enter your domain (e.g., n8n.company.com):${NC}"
     read -r DOMAIN
-    if [[ "$DOMAIN" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$ ]]; then
+    # Simple validation - just check it has at least one dot and looks like a domain
+    if [[ "$DOMAIN" =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$ ]]; then
         break
     else
         print_color "Invalid domain format!" "$RED"
