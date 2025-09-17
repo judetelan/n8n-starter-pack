@@ -8,6 +8,12 @@
 
 set -e
 
+# Ensure we're running in bash
+if [ -z "$BASH_VERSION" ]; then
+    echo "This script requires bash. Running with bash..."
+    exec bash "$0" "$@"
+fi
+
 # Environment variables for non-interactive mode
 # Export these before running for automation:
 # export N8N_DOMAIN="n8n.yourdomain.com"
@@ -144,7 +150,8 @@ production_setup() {
         print_message "Using domain from environment: $DOMAIN" "$GREEN"
     else
         while true; do
-            read -p "Enter domain/subdomain (e.g., n8n.company.com): " DOMAIN
+            echo -n "Enter domain/subdomain (e.g., n8n.company.com): "
+            read DOMAIN
             if [[ "$DOMAIN" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$ ]]; then
                 break
             else
@@ -158,10 +165,12 @@ production_setup() {
         EMAIL="$N8N_EMAIL"
         print_message "Using email from environment: $EMAIL" "$GREEN"
     else
-        read -p "Email for SSL certificates: " EMAIL
+        echo -n "Email for SSL certificates: "
+        read EMAIL
         while [[ ! "$EMAIL" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; do
             print_message "Invalid email!" "$RED"
-            read -p "Enter email: " EMAIL
+            echo -n "Enter email: "
+            read EMAIL
         done
     fi
 
@@ -179,7 +188,8 @@ configure_installation() {
     # Setup type - DEFAULT TO PRODUCTION
     echo "1) Quick Setup (localhost/testing)"
     echo "2) Production Setup (with domain) [DEFAULT]"
-    read -p "Choose setup type [2]: " setup_type
+    echo -n "Choose setup type [2]: "
+    read setup_type
     setup_type=${setup_type:-2}
 
     if [ "$setup_type" = "2" ]; then
@@ -204,7 +214,8 @@ configure_installation() {
             else
                 WORKERS=1
             fi
-            read -p "Number of workers (0-${cpu_cores}) [${WORKERS}]: " user_workers
+            echo -n "Number of workers (0-${cpu_cores}) [${WORKERS}]: "
+            read user_workers
             WORKERS=${user_workers:-$WORKERS}
         fi
     fi
@@ -229,8 +240,8 @@ configure_installation() {
     echo "Install Path: $INSTALL_DIR"
     echo "================================"
 
-    read -p "Continue? (y/n) [y]: " -n 1 -r confirm
-    echo
+    echo -n "Continue? (y/n) [y]: "
+    read confirm
     confirm=${confirm:-y}
     if [[ ! $confirm =~ ^[Yy]$ ]]; then
         exit 1
