@@ -23,20 +23,20 @@ Professional n8n deployment system for VPS with automatic SSL, workers, and Redi
 
 ## 🚀 Installation
 
-### Quick Install (One Command)
-
-```bash
-wget -O install.sh https://raw.githubusercontent.com/judetelan/n8n-starter-pack/master/install.sh && sudo bash install.sh
-```
-
-Or with curl:
+### One Command Install
 
 ```bash
 curl -o install.sh https://raw.githubusercontent.com/judetelan/n8n-starter-pack/master/install.sh && sudo bash install.sh
 ```
 
-### Alternative: Clone Method
+### Alternative Methods
 
+**Using wget:**
+```bash
+wget -O install.sh https://raw.githubusercontent.com/judetelan/n8n-starter-pack/master/install.sh && sudo bash install.sh
+```
+
+**Using git clone:**
 ```bash
 git clone https://github.com/judetelan/n8n-starter-pack && cd n8n-starter-pack && sudo bash install.sh
 ```
@@ -142,7 +142,9 @@ gunzip backups/backup_*.sql.gz
 docker exec [client]-postgres psql -U n8n n8n < backups/backup_*.sql
 ```
 
-## 🔄 Update n8n
+## 🔄 Updates
+
+### Update n8n Application
 
 ```bash
 ./manage.sh update
@@ -150,8 +152,22 @@ docker exec [client]-postgres psql -U n8n n8n < backups/backup_*.sql
 
 This will:
 1. Create backup
-2. Pull latest images
+2. Pull latest n8n images
 3. Restart services
+
+### Update Installer Script
+
+To get the latest installer improvements:
+
+```bash
+curl -o update-installer.sh https://raw.githubusercontent.com/judetelan/n8n-starter-pack/master/update-installer.sh && sudo bash update-installer.sh
+```
+
+Or if you have the repository cloned:
+```bash
+cd n8n-starter-pack
+git pull
+```
 
 ## ⚙️ Resource Configuration
 
